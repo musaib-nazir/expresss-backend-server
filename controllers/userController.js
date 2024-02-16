@@ -1,16 +1,11 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const cloudinary = require('cloudinary')
+const cloudinary = require("../utility/cloudinary")
 const secretKey = process.env.SECRET_KEY;
+const transporter = require ("../utility/nodemailer")
 
 
-cloudinary.config({
-
-  cloud_name: 'dyepamyzm',
-  api_key: '158529642125964',
-  api_secret: '--cQEDOF2PjOlUnQqoiT_2JnfVI'
-})
 
 
 //register function whenever this function will be called it will accept payload in json username ,email......
@@ -28,10 +23,24 @@ const registerController = async (req, res) => {
         const newUser = new User({ username, email, password: hashedPassword, authenticationcode: hashedcode });
 
         await newUser.save();
-        res.status(201).json({ message: "User created!!...Please remember your authentication code for security purposes " });
+
+        const sendMail = await  transporter.sendMail({
+          from: "musi7780@gmail.com",
+          to: `${email}`,
+          subject: " welcome email",
+          text: `welcome ${username} to our site `
+
+        })
+
+        if (sendMail) {
+
+          res.status(201).json({ message: "User created!!...Please remember your authentication code for security purposes " });
+        }else{res.json({message:"something went wrong while sending email"})}
       } else {
         res.json({ message: "User Already Exits" });
       }
+
+
     } else {
       res.status(401).json({ message: "All credentials Required" });
     }
@@ -49,9 +58,14 @@ const loginController = async (req, res) => {
       if (isUser) {
         const passVerify = await bcrypt.compare(password, isUser.password);
         if (passVerify) {
-          const token = await jwt.sign(
-            { appUser: isUser.username },
-            `${secretKey}`
+          const token = jwt.sign(
+            {
+              username: isUser.username,
+              _id: isUser._id,
+              profilepIcUrl: isUser.profilepIcUrl,
+            },
+            "sevensprings"
+
           );
 
           res.cookie("username", username, { httpOnly: true });
@@ -77,7 +91,7 @@ const logoutController = async (req, res) => {
 
 
     if (token) {
-      const decode = await jwt.verify(token, `${secretKey}`)
+      const decode = jwt.verify(token, `${secretKey}`)
 
       if (decode) {
         res.clearCookie("token");
@@ -110,7 +124,7 @@ const forgotpassController = async (req, res) => {
 
     if (email && authenticationcode !== "") {
       if (isUser) {
-        const codeverify = await bcrypt.compare(authenticationcode, isUser.authenticationcode)
+        const codeverify = bcrypt.compare(authenticationcode, isUser.authenticationcode)
 
 
         if (codeverify) { res.json({ message: "Kindly change Ur password With newOne ", _id }); }
@@ -291,7 +305,7 @@ const passwordupdate = async (req, res) => {
     if (password && updatedpassword && confirmpassword !== "") {
 
 
-      const passverify = await bcrypt.compare(password, finduser.password)
+      const passverify = bcrypt.compare(password, finduser.password)
 
       if (passverify) {
         if (updatedpassword == confirmpassword) {
@@ -299,7 +313,7 @@ const passwordupdate = async (req, res) => {
           if (hashedpass) {
 
 
-            const newpass = await User.updateOne({ password: hashedpass })
+            const newpass = await User.findOneAndUpdate({ username: username }, { password: hashedpass })
             if (newpass) {
 
               res.json({ message: " password updated successfully" })
@@ -327,11 +341,11 @@ const passwordupdate = async (req, res) => {
 const userdetailscontroller = async (req, res) => {
   try {
 
-    const username = req.cookie.username;
+    const username = req.cookies.username;
 
     const user = await User.findOne({ username })
     if (user) {
-      const userDetails = { username: user.username, email: user.email, password: user.password }
+      const userDetails = { username: user.username, email: user.email }
 
 
       res.json({ userDetails })
@@ -349,7 +363,8 @@ const profilepicController = async (req, res) => {
   try {
 
 
-    const _id = req.query.user
+
+    const _id = req.query._id
 
     const image = req.file.path
 
@@ -364,7 +379,7 @@ const profilepicController = async (req, res) => {
       if (imageUrl !== "") {
 
 
-        const UpdateprofileUrl = await User.findByIdAndUpdate(_id, { $push: { profilePic: imageUrl } })
+        const UpdateprofileUrl = await User.findByIdAndUpdate(_id, { profilePic: imageUrl })
 
         if (UpdateprofileUrl) {
 
@@ -394,9 +409,90 @@ const profilepicController = async (req, res) => {
 
 
 
+const followUserHandler = async (req, res) => {
+  const followerId = req.info._id;
+  const { followedId } = req.query;
+  const user = await User.findById(followerId)
+
+  const followed = await User.findById(followedId)
+  if (followed) {
+
+    const alreadyFoll = user.userFollowing.findIndex((followed) => followed.user.toString() === followedId);
+    if (alreadyFoll === -1) {
+      user.userFollowing.push({ user: followedId });
+      followed.userFollowers.push({ user: followerId })
+
+      const incfollower = await user.save();
+      await followed.save()
+      if (incfollower) {
+        res.json({ message: `you followed ${followedId}` });
+
+      }
+    } else {
+      user.userFollowing.pull({ user: followedId });
+      followed.userFollowers.pull({ user: followerId })
+
+      await user.save();
+      await followed.save()
+
+      res.json({ message: "user unfollowed" });
+      //  res.json({message: "already follow this user"})  
+    }
+
+  } else {
+    res.json({ message: "User not found" });
+  }
+
+
+};
+
+const getFollowerhandler = async (req,res) => {
+ const username = req.info;
+ console.log(username)
+ const{userId} = req.query
+ console.log(userId)
+ const isUser = await User.findById(userId);
+ console.log(isUser)
+ if(isUser){
+        
+    const UserFollowers =  isUser.userFollowers;
+    const count = isUser.userFollowers.length
+              
+           res.json({count,UserFollowers})
+
+}else{res.json({message:"user not found"})}
 
 
 
+}
+
+
+
+const getFollowinghandler = async (req,res) => {
+
+
+
+  const username = req.info;
+  console.log(username)
+  const {userId} = req.query
+  const isUser = await User.findById(userId);
+  console.log(isUser)
+  if(isUser){
+         
+     const UserFollowings =  isUser.userFollowing;
+     const count = isUser.userFollowing.length
+               
+            res.json({count,UserFollowings})
+
+}else{res.json({message: "user not found"})
+
+
+
+}
+
+
+
+}
 
 
 module.exports = {
@@ -409,5 +505,8 @@ module.exports = {
   usernameUpdateController,
   passwordupdate,
   userdetailscontroller,
-  profilepicController
+  profilepicController,
+  followUserHandler,
+  getFollowerhandler,
+  getFollowinghandler
 };

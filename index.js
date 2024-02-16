@@ -1,24 +1,32 @@
 const express = require('express')       // importing express from node modules in index.js  which is used for creating server 
 const mongoose = require('mongoose')     // importing mongoose libarary which is used for connecting mongo db 
 const bodyParser = require('body-parser')
-const cors =require('cors')
+const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const multMidWare = require('./middleware/multer')
-
+const IsAuthenticated = require('./middleware/auth')
 
 const { registerController,
   loginController,
   logoutController,
   forgotpassController,
   changepassController,
-  deleteusercontroller ,
+  deleteusercontroller,
   usernameUpdateController,
-  passwordupdate ,
+  passwordupdate,
   userdetailscontroller,
-  profilepicController} = require('./controllers/userController')
+  profilepicController,
+  followUserHandler,
+  getFollowerhandler,
+  getFollowinghandler } = require('./controllers/userController')
 
 
-  const postHandler = require('./controllers/postController')
+const { postHandler,
+  likeHandler,
+  commentHandler,
+  deletePostHandler,
+  deleteCommentHandler,
+} = require('./controllers/postController')
 
 
 const app = express()      //  declaring a variable  app in which express function is called 
@@ -51,23 +59,26 @@ app.post('/user/login', loginController)
 app.post('/user/logout', logoutController)
 app.post('/user/forgotPassword', forgotpassController)
 app.post('/user/changePassword', changepassController)
-app.post('/user/deleteUser',deleteusercontroller)
-app.post('/user/updateusername',usernameUpdateController)
-app.post('/user/updatepassword',  passwordupdate)
+app.post('/user/deleteUser', deleteusercontroller)
+app.post('/user/updateusername', usernameUpdateController)
+app.post('/user/updatepassword', passwordupdate)
 
-app.post('/user/updateProfilePic',multMidWare,  profilepicController)
+app.post('/user/updateProfilePic', multMidWare, profilepicController)
 
+app.post('/user/follow', IsAuthenticated, followUserHandler);
 
-
-app.get('/user/getFollowers' , (req,res) => { res.send("No followers")})
-app.get('/user/getFollowing' , (req,res) => { res.send("No following")})
-app.get ('/user/userdetails',userdetailscontroller)
+app.get('/user/getFollowers', IsAuthenticated,getFollowerhandler)
+app.get('/user/getFollowing',IsAuthenticated,getFollowinghandler)
+app.get('/user/userdetails', userdetailscontroller)
 
 
 // postcontrollersroutes
 
-app.post('/post/new',multMidWare,postHandler)
-
+app.post('/post/new', multMidWare, postHandler)
+app.post('/post/likes', IsAuthenticated, likeHandler)
+app.post('/post/comment', IsAuthenticated, commentHandler)
+app.post('/post/delete', IsAuthenticated, deletePostHandler)
+app.post("/post/deleteCommment", IsAuthenticated, deleteCommentHandler)
 
 
 //  starting a server      //console.log   =>template literal

@@ -1,20 +1,38 @@
-const mongoose = require ('mongoose')
+const mongoose = require('mongoose')
 
 
 
 const postschema = mongoose.Schema({
 
-    author : String,
+    author: String,
 
 
-    title : String , 
-    imageUrl : String,
-    caption : String,
-    likeCounts: [],
-    Comments : [],
-    shareCounts : []
-    
-    
+    title: String,
+    imageUrl: String,
+    caption: String,
+    likeCounts: [
+
+        {
+          user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+        },
+      ],
+    comments: [
+        {
+            comment: String,
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            }
+        }
+    ],
+    shareCounts: [ {user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",}
+  },]
+
 })
 
 
@@ -24,7 +42,7 @@ const postschema = mongoose.Schema({
 
 
 
-const Post  = mongoose.model('Post' , postschema )
+const Post = mongoose.model('Post', postschema)
 
 
 module.exports = Post
