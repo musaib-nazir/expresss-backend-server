@@ -26,6 +26,8 @@ const { postHandler,
   commentHandler,
   deletePostHandler,
   deleteCommentHandler,
+  getPosthandler
+
 } = require('./controllers/postController')
 
 
@@ -56,7 +58,7 @@ if (mongoose.connect(url)) {
 app.get('/home', (req, res) => { res.send("helloworld") })
 app.post('/user/register', registerController)
 app.post('/user/login', loginController)
-app.post('/user/logout', logoutController)
+app.post('/user/logout', IsAuthenticated,logoutController)
 app.post('/user/forgotPassword', forgotpassController)
 app.post('/user/changePassword', changepassController)
 app.post('/user/deleteUser', deleteusercontroller)
@@ -74,12 +76,14 @@ app.get('/user/userdetails', userdetailscontroller)
 
 // postcontrollersroutes
 
-app.post('/post/new', multMidWare, postHandler)
+app.post('/post/new', multMidWare,IsAuthenticated, postHandler)
 app.post('/post/likes', IsAuthenticated, likeHandler)
 app.post('/post/comment', IsAuthenticated, commentHandler)
 app.post('/post/delete', IsAuthenticated, deletePostHandler)
 app.post("/post/deleteCommment", IsAuthenticated, deleteCommentHandler)
 
+
+app.get("/explore" , getPosthandler)
 
 //  starting a server      //console.log   =>template literal
 app.listen(Port, console.log(`server conected on localhost : ${Port} `))       

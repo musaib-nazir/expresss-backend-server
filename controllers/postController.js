@@ -10,16 +10,19 @@ const postHandler = async (req, res) => {
     const { title, caption } = req.body;
 
     const image = req.file.path;
-    const { userId } = req.query;
+    const { _id} = req.info
+  
     const upload = await cloudinary.v2.uploader.upload(image, { folder: "myMedia" })
 
     const imageUrl = upload.secure_url
 
     if (imageUrl !== "") {
-      const newPost = new Post({ title, imageUrl, caption })
+      const newPost = new Post({ author: _id, title:title, imageUrl, caption })
       await newPost.save()
       const postId = newPost._id
-      await User.findByIdAndUpdate(userId, { $push: { posts: postId } })
+      await User.findByIdAndUpdate(_id, { $push: { posts: postId } });
+
+
       res.status(201).json({ message: "Post Uploaded", postId });
     }
     else {
@@ -170,13 +173,51 @@ const delComment = await post.comments.pull({_id: commentId, post : postId})
   // console.log(indexOfdelComment);
 
   // const delComment = await post.comments.splice(indexOfdelComment, 1);
+
+
+
 };
 
 
 
+const getPosthandler = async (req,res)=>{
+try{
+
+  const allposts = await Post.find().populate([
+
+{path:"author",
+model:"User"},
+
+{path:"likeCounts.user",
+model:"User"},
+
+{path:"comments.user",
+model:"User"},
+
+{path:"shareCounts",
+model:"User"}
+
+
+
+])
+
+if(allposts){res.json( {message:"posts found!!" , allposts})}
+else{res.json("posts found!!")
+}
+
+}
+catch(err){console.log(err)}
 
 
 
 
-module.exports = { postHandler, likeHandler, commentHandler, deletePostHandler, deleteCommentHandler }
+}
+
+
+
+
+
+
+
+module.exports = { postHandler, likeHandler, commentHandler, deletePostHandler, deleteCommentHandler, getPosthandler}
 

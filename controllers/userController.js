@@ -3,8 +3,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cloudinary = require("../utility/cloudinary")
 const secretKey = process.env.SECRET_KEY;
-const transporter = require ("../utility/nodemailer")
-
+const transporter = require("../utility/nodemailer")
+const Post = require("../models/postModel")
 
 
 
@@ -13,18 +13,17 @@ const transporter = require ("../utility/nodemailer")
 
 const registerController = async (req, res) => {
   try {
-    const { username, email, password, authenticationcode } = req.body;
+    const { username, email, password, } = req.body;
     const existingUser = await User.findOne({ email });
-    if (username && email && password && authenticationcode !== "") {
+    if (username && email && password !== "") {
       if (!existingUser) {
 
-        const hashedcode = await bcrypt.hash(authenticationcode, 13)
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, email, password: hashedPassword, authenticationcode: hashedcode });
+        const newUser = new User({ username, email, password: hashedPassword, });
 
         await newUser.save();
 
-        const sendMail = await  transporter.sendMail({
+        const sendMail = await transporter.sendMail({
           from: "musi7780@gmail.com",
           to: `${email}`,
           subject: " welcome email",
@@ -35,14 +34,14 @@ const registerController = async (req, res) => {
         if (sendMail) {
 
           res.status(201).json({ message: "User created!!...Please remember your authentication code for security purposes " });
-        }else{res.json({message:"something went wrong while sending email"})}
+        } else { res.json({ message: "something went wrong while sending email" }) }
       } else {
         res.json({ message: "User Already Exits" });
       }
 
 
     } else {
-      res.status(401).json({ message: "All credentials Required" });
+      res.json({ message: "All credentials Required" });
     }
   } catch (error) {
     console.log(error);
@@ -58,19 +57,17 @@ const loginController = async (req, res) => {
       if (isUser) {
         const passVerify = await bcrypt.compare(password, isUser.password);
         if (passVerify) {
-          const token = jwt.sign(
-            {
-              username: isUser.username,
-              _id: isUser._id,
-              profilepIcUrl: isUser.profilepIcUrl,
-            },
-            "sevensprings"
 
-          );
 
-          res.cookie("username", username, { httpOnly: true });
+          const token = jwt.sign({
+            username: isUser.username,
+            _id: isUser._id,
+            profilepIcUrl: isUser.profilepIcUrl,
+          }, "sevensprings");
 
+          res.cookie("token", token, { httpOnly: true });
           res.json({ message: "Logged In", token });
+          ;
         } else {
           res.json({ message: "Password Doesnot Match" });
         }
@@ -88,21 +85,10 @@ const loginController = async (req, res) => {
 const logoutController = async (req, res) => {
   try {
     const token = req.cookies.token;
-
-
     if (token) {
-      const decode = jwt.verify(token, `${secretKey}`)
-
-      if (decode) {
-        res.clearCookie("token");
-        res.json({ message: "logged Out succesfuly" });
-      }
-      else {
-        res.json({ message: "some thing Went wrong " })
-      }
-    }
-
-    else {
+      res.clearCookie("token");
+      res.json({ message: "logged Out succesfuly" });
+    } else {
       res.json({ message: "missing token" });
     }
   }
@@ -446,21 +432,21 @@ const followUserHandler = async (req, res) => {
 
 };
 
-const getFollowerhandler = async (req,res) => {
- const username = req.info;
- console.log(username)
- const{userId} = req.query
- console.log(userId)
- const isUser = await User.findById(userId);
- console.log(isUser)
- if(isUser){
-        
-    const UserFollowers =  isUser.userFollowers;
-    const count = isUser.userFollowers.length
-              
-           res.json({count,UserFollowers})
+const getFollowerhandler = async (req, res) => {
+  const username = req.info;
+  console.log(username)
+  const { userId } = req.query
+  console.log(userId)
+  const isUser = await User.findById(userId);
+  console.log(isUser)
+  if (isUser) {
 
-}else{res.json({message:"user not found"})}
+    const UserFollowers = isUser.userFollowers;
+    const count = isUser.userFollowers.length
+
+    res.json({ count, UserFollowers })
+
+  } else { res.json({ message: "user not found" }) }
 
 
 
@@ -468,27 +454,28 @@ const getFollowerhandler = async (req,res) => {
 
 
 
-const getFollowinghandler = async (req,res) => {
+const getFollowinghandler = async (req, res) => {
 
 
 
   const username = req.info;
   console.log(username)
-  const {userId} = req.query
+  const { userId } = req.query
   const isUser = await User.findById(userId);
   console.log(isUser)
-  if(isUser){
-         
-     const UserFollowings =  isUser.userFollowing;
-     const count = isUser.userFollowing.length
-               
-            res.json({count,UserFollowings})
+  if (isUser) {
 
-}else{res.json({message: "user not found"})
+    const UserFollowings = isUser.userFollowing;
+    const count = isUser.userFollowing.length
+
+    res.json({ count, UserFollowings })
+
+  } else {
+    res.json({ message: "user not found" })
 
 
 
-}
+  }
 
 
 

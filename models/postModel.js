@@ -4,10 +4,9 @@ const mongoose = require('mongoose')
 
 const postschema = mongoose.Schema({
 
-    author: String,
-
-
-    title: String,
+    author: {type: mongoose.Schema.Types.ObjectId,
+                       ref:"User"},
+title : String,
     imageUrl: String,
     caption: String,
     likeCounts: [
