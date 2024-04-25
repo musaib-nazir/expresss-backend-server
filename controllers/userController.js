@@ -13,7 +13,7 @@ const Post = require("../models/postModel")
 
 const registerController = async (req, res) => {
   try {
-    const { username, email, password, } = req.body;
+    const { username, email, password} = req.body;
     const existingUser = await User.findOne({ email });
     if (username && email && password !== "") {
       if (!existingUser) {
@@ -51,22 +51,23 @@ const registerController = async (req, res) => {
 
 const loginController = async (req, res) => {
   try {
+    const secretKey = process.env.SECRET_KEY;
     const { username, password } = req.body;
     const isUser = await User.findOne({ username });
     if (username !== "" && password !== "") {
       if (isUser) {
         const passVerify = await bcrypt.compare(password, isUser.password);
         if (passVerify) {
-
+const userId = isUser._id
 
           const token = jwt.sign({
             username: isUser.username,
             _id: isUser._id,
             profilepIcUrl: isUser.profilepIcUrl,
-          }, "sevensprings");
+          },"sevensprings");
 
           res.cookie("token", token, { httpOnly: true });
-          res.json({ message: "Logged In", token });
+          res.json({ message: "Logged In", token,userId });
           ;
         } else {
           res.json({ message: "Password Doesnot Match" });
@@ -104,19 +105,24 @@ const logoutController = async (req, res) => {
 const forgotpassController = async (req, res) => {
 
   try {
-    const { email, authenticationcode } = req.body; // u can take answer of the security question for further validation
+    const { email } = req.body; // u can take answer of the security question for further validation
     const isUser = await User.findOne({ email });
     const _id = isUser._id
+   const mailOptions = {
+          from: "irfanusuf33@gmail.com",
+          to: `${email}`,
+          subject: "Link For Changing Password",
+          text: " some text ",}
 
-    if (email && authenticationcode !== "") {
+    if (email!== "") {
       if (isUser) {
-        const codeverify = bcrypt.compare(authenticationcode, isUser.authenticationcode)
+        // const codeverify = bcrypt.compare(authenticationcode, isUser.authenticationcode)
+       await transporter.sendMail(mailOptions);
 
-
-        if (codeverify) { res.json({ message: "Kindly change Ur password With newOne ", _id }); }
-
-
-        else { res.json({ message: "CODE DOES NOT MATCH...TRY AGAIN!!!!!!!!!" }) }
+       res.json({
+        message:
+          " kindly check ur mail .We have provided a link for changing password ",
+      });
 
 
 
@@ -350,7 +356,7 @@ const profilepicController = async (req, res) => {
 
 
 
-    const _id = req.query._id
+    const _id = req.info._id
 
     const image = req.file.path
 
@@ -365,7 +371,7 @@ const profilepicController = async (req, res) => {
       if (imageUrl !== "") {
 
 
-        const UpdateprofileUrl = await User.findByIdAndUpdate(_id, { profilePic: imageUrl })
+        const UpdateprofileUrl = await User.findByIdAndUpdate(_id, { profilepIcUrl: imageUrl })
 
         if (UpdateprofileUrl) {
 
@@ -378,14 +384,6 @@ const profilepicController = async (req, res) => {
 
 
     } else (res.json({ message: "Select image " }))
-
-
-
-
-
-
-
-
   } catch (error) { console.log({ error }) }
 
 
@@ -401,9 +399,12 @@ const followUserHandler = async (req, res) => {
   const user = await User.findById(followerId)
 
   const followed = await User.findById(followedId)
-  if (followed) {
+  if (user&&followed) {
 
-    const alreadyFoll = user.userFollowing.findIndex((followed) => followed.user.toString() === followedId);
+    const alreadyFoll = await user.userFollowing.findIndex((followed) => followed.user._id.toString() === followedId);
+// await user.userfollowing.includes()
+
+
     if (alreadyFoll === -1) {
       user.userFollowing.push({ user: followedId });
       followed.userFollowers.push({ user: followerId })
@@ -411,7 +412,7 @@ const followUserHandler = async (req, res) => {
       const incfollower = await user.save();
       await followed.save()
       if (incfollower) {
-        res.json({ message: `you followed ${followedId}` });
+        res.json({ message:"you followed user" });
 
       }
     } else {
@@ -482,6 +483,30 @@ const getFollowinghandler = async (req, res) => {
 }
 
 
+const getUser = async (req, res) => {
+  const _id = req.query.userId;
+
+  const user = await User.findById(_id)
+  .populate([
+    {
+      path: "posts",
+      model: "Post",
+    },
+    {
+path:"userFollowers.user",
+model:"User"
+
+    }
+
+  ]); //time complexity log n
+
+  if (user) {
+    res.json({ message: "user Found", user });
+  } else {
+    res.json({ message: "user Not Found" });
+  }
+};
+
 module.exports = {
   registerController,
   loginController,
@@ -495,5 +520,6 @@ module.exports = {
   profilepicController,
   followUserHandler,
   getFollowerhandler,
-  getFollowinghandler
+  getFollowinghandler,
+  getUser
 };

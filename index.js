@@ -18,7 +18,9 @@ const { registerController,
   profilepicController,
   followUserHandler,
   getFollowerhandler,
-  getFollowinghandler } = require('./controllers/userController')
+  getFollowinghandler,
+  getUser, 
+  } = require('./controllers/userController')
 
 
 const { postHandler,
@@ -26,7 +28,9 @@ const { postHandler,
   commentHandler,
   deletePostHandler,
   deleteCommentHandler,
-  getPosthandler
+  getPosthandler,
+  getfollPosts,
+  getallLikes
 
 } = require('./controllers/postController')
 
@@ -59,19 +63,21 @@ app.get('/home', (req, res) => { res.send("helloworld") })
 app.post('/user/register', registerController)
 app.post('/user/login', loginController)
 app.post('/user/logout', IsAuthenticated,logoutController)
+app.get("/user",getUser)
 app.post('/user/forgotPassword', forgotpassController)
 app.post('/user/changePassword', changepassController)
 app.post('/user/deleteUser', deleteusercontroller)
 app.post('/user/updateusername', usernameUpdateController)
 app.post('/user/updatepassword', passwordupdate)
 
-app.post('/user/updateProfilePic', multMidWare, profilepicController)
+app.post('/user/updateProfilePic', multMidWare,IsAuthenticated, profilepicController)
 
 app.post('/user/follow', IsAuthenticated, followUserHandler);
 
 app.get('/user/getFollowers', IsAuthenticated,getFollowerhandler)
 app.get('/user/getFollowing',IsAuthenticated,getFollowinghandler)
 app.get('/user/userdetails', userdetailscontroller)
+
 
 
 // postcontrollersroutes
@@ -81,6 +87,8 @@ app.post('/post/likes', IsAuthenticated, likeHandler)
 app.post('/post/comment', IsAuthenticated, commentHandler)
 app.post('/post/delete', IsAuthenticated, deletePostHandler)
 app.post("/post/deleteCommment", IsAuthenticated, deleteCommentHandler)
+app.get("/post/followposts",IsAuthenticated,getfollPosts)
+app.get("/post/getlikes",IsAuthenticated,getallLikes)
 
 
 app.get("/explore" , getPosthandler)

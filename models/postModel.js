@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-
+const User = require("./userModel")
 
 const postschema = mongoose.Schema({
 
@@ -44,4 +44,4 @@ title : String,
 const Post = mongoose.model('Post', postschema)
 
 
-module.exports = Post
+module.exports = Post;
